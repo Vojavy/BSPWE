@@ -1,0 +1,4 @@
+zone "mojefirma.cz" {
+    type master;
+    file "/etc/bind/db.mojefirma";
+};
