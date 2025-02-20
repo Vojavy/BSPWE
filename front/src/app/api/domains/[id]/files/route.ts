@@ -1,116 +1,69 @@
 import { NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
 
-const JWT_SECRET = 'your-secret-key';
+const JWT_SECRET = '1234567890';
 
-interface FileItem {
-	type: 'file';
-	size: string;
-	modified: string;
-}
-
-interface DirectoryItem {
-	type: 'directory';
-	items: Record<string, FileItem | DirectoryItem>;
-}
-
-type FileSystemItem = FileItem | DirectoryItem;
-
-const fileSystem = new Map<string, { '/': DirectoryItem }>([
+const fileSystem = new Map([
 	[
-		'3',
-		{
-			'/': {
-				type: 'directory',
-				items: {
-					public_html: {
-						type: 'directory',
-						items: {
-							'index.html': {
-								type: 'file',
-								size: '2.5 KB',
-								modified: '2024-02-17 14:30'
-							},
-							'style.css': {
-								type: 'file',
-								size: '1.2 KB',
-								modified: '2024-02-17 14:30'
-							},
-							images: {
-								type: 'directory',
-								items: {
-									'logo.png': {
-										type: 'file',
-										size: '50 KB',
-										modified: '2024-02-17 14:30'
-									}
-								}
-							}
-						}
-					},
-					logs: {
-						type: 'directory',
-						items: {
-							'access.log': {
-								type: 'file',
-								size: '156 KB',
-								modified: '2024-02-17 14:30'
-							}
-						}
-					}
-				}
-			}
-		}
-	]
+		'/',
+		[
+			{ name: 'public_html', type: 'directory' },
+			{ name: 'logs', type: 'directory' },
+			{ name: '.htaccess', type: 'file', size: '1.2 KB', modified: '2024-02-20 12:00' }
+		]
+	],
+	[
+		'/public_html',
+		[
+			{ name: 'index.php', type: 'file', size: '4.5 KB', modified: '2024-02-20 12:00' },
+			{ name: 'assets', type: 'directory' },
+			{ name: 'css', type: 'directory' },
+			{ name: 'js', type: 'directory' }
+		]
+	],
+	[
+		'/logs',
+		[
+			{ name: 'access.log', type: 'file', size: '256 KB', modified: '2024-02-20 12:00' },
+			{ name: 'error.log', type: 'file', size: '128 KB', modified: '2024-02-20 12:00' }
+		]
+	],
+	[
+		'/public_html/assets',
+		[
+			{ name: 'logo.png', type: 'file', size: '24 KB', modified: '2024-02-20 12:00' },
+			{ name: 'favicon.ico', type: 'file', size: '4 KB', modified: '2024-02-20 12:00' }
+		]
+	],
+	['/public_html/css', [{ name: 'style.css', type: 'file', size: '8 KB', modified: '2024-02-20 12:00' }]],
+	['/public_html/js', [{ name: 'main.js', type: 'file', size: '16 KB', modified: '2024-02-20 12:00' }]]
 ]);
-
-function isDirectory(item: FileSystemItem): item is DirectoryItem {
-	return item.type === 'directory';
-}
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
 	try {
 		const authHeader = request.headers.get('authorization');
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
-			return NextResponse.json({ status: 'error', message: 'No token provided' }, { status: 401 });
+			return NextResponse.json({ error: 'No token provided' }, { status: 401 });
 		}
 
 		const token = authHeader.split(' ')[1];
-		verify(token, JWT_SECRET);
-
-		const { searchParams } = new URL(request.url);
-		const path = searchParams.get('path') || '/';
+		const decoded = verify(token, JWT_SECRET) as { id: number };
 
 		const { id } = await params;
-		const domainFiles = fileSystem.get(id);
-		if (!domainFiles) {
-			return NextResponse.json({ status: 'error', message: 'Domain not found' }, { status: 404 });
-		}
+		const url = new URL(request.url);
+		const path = url.searchParams.get('path') || '/';
 
-		let current: FileSystemItem = domainFiles['/'];
-		const parts = path.split('/').filter(Boolean);
-		for (const part of parts) {
-			if (!isDirectory(current) || !(part in current.items)) {
-				return NextResponse.json({ status: 'error', message: 'Path not found' }, { status: 404 });
-			}
-			current = current.items[part];
-		}
-
-		if (!isDirectory(current)) {
-			return NextResponse.json({ status: 'error', message: 'Not a directory' }, { status: 400 });
+		const files = fileSystem.get(path);
+		if (!files) {
+			return NextResponse.json({ error: 'Directory not found' }, { status: 404 });
 		}
 
 		return NextResponse.json({
 			status: 'success',
-			path,
-			items: Object.entries(current.items).map(([name, item]) => ({
-				name,
-				...item
-			}))
+			items: files
 		});
 	} catch (error) {
-		console.error('File system error:', error);
-		return NextResponse.json({ status: 'error', message: 'Not authorized' }, { status: 401 });
+		return NextResponse.json({ error: 'Failed to fetch files' }, { status: 500 });
 	}
 }
 
@@ -118,28 +71,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 	try {
 		const authHeader = request.headers.get('authorization');
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
-			return NextResponse.json({ status: 'error', message: 'No token provided' }, { status: 401 });
+			return NextResponse.json({ error: 'No token provided' }, { status: 401 });
 		}
 
 		const token = authHeader.split(' ')[1];
-		verify(token, JWT_SECRET);
-
-		const formData = await request.formData();
-		const path = formData.get('path') as string;
-		const files = formData.getAll('files');
+		const decoded = verify(token, JWT_SECRET) as { id: number };
 
 		const { id } = await params;
-		const domainFiles = fileSystem.get(id);
-		if (!domainFiles) {
-			return NextResponse.json({ status: 'error', message: 'Domain not found' }, { status: 404 });
-		}
-
 		return NextResponse.json({
 			status: 'success',
-			message: `${files.length} files uploaded successfully to ${path}`
+			message: 'Files uploaded successfully'
 		});
 	} catch (error) {
-		console.error('File upload error:', error);
-		return NextResponse.json({ status: 'error', message: 'Not authorized' }, { status: 401 });
+		return NextResponse.json({ error: 'Failed to upload files' }, { status: 500 });
 	}
 }

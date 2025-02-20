@@ -24,7 +24,7 @@ const users = new Map([
 	]
 ]);
 
-const JWT_SECRET = 'your-secret-key';
+const JWT_SECRET = '1234567890';
 
 export async function POST(request: Request) {
 	try {
@@ -66,4 +66,5 @@ export async function POST(request: Request) {
 		return NextResponse.json({ status: 'error', message: 'Internal server error' }, { status: 500 });
 	}
 }
+
 

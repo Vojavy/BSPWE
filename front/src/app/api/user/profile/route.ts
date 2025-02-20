@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
 
-const JWT_SECRET = 'your-secret-key';
+const JWT_SECRET = '1234567890';
 
 const userDomains = new Map([
 	[
