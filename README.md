@@ -133,4 +133,6 @@ symfony server:start
 This project is proprietary and confidential.
 
 ## Contact
-For any inquiries, please contact the development team. 
+For any inquiries, please contact:
+- Developer: armesha
+- Email: st69596@upce.cz 
