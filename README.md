@@ -120,7 +120,7 @@ symfony server:start
 ## Requirements
 - PHP 8.1 or higher
 - Composer
-- MySQL/MariaDB
+- PostgreSQL
 - Symfony CLI (for development)
 
 ## Security
@@ -128,11 +128,3 @@ symfony server:start
 - Passwords are securely hashed
 - Rate limiting is implemented on authentication endpoints
 - CORS policies are properly configured
-
-## License
-This project is proprietary and confidential.
-
-## Contact
-For any inquiries, please contact:
-- Developer: armesha
-- Email: st69596@upce.cz 
