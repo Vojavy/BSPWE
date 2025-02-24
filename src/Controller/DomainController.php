@@ -159,4 +159,34 @@ class DomainController extends AbstractController
             'new_password' => $newPassword
         ]);
     }
+
+    #[Route('/{id}', name: 'api_domain_delete', methods: ['DELETE'])]
+    public function deleteDomain(int $id): JsonResponse
+    {
+        $domain = $this->entityManager->getRepository(Domain::class)->find($id);
+        
+        if (!$domain) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Domain not found'
+            ], 404);
+        }
+
+        // Check if user has access to this domain
+        if ($domain->getOwner() !== $this->getUser()) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Access denied'
+            ], 403);
+        }
+
+        // Remove the domain
+        $this->entityManager->remove($domain);
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Domain deleted successfully'
+        ]);
+    }
 } 

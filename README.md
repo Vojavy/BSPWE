@@ -6,11 +6,10 @@ BSPWE is a backend service that provides API endpoints for managing web hosting 
 ## API Documentation
 
 ### Authentication Endpoints
-Base URL: `/api/auth`
 
 #### Login
-- **POST** `/api/auth/login`
-- **Description**: Authenticate user and receive JWT token
+- **URL**: `/api/auth/login`
+- **Method**: `POST`
 - **Request Body**:
   ```json
   {
@@ -18,11 +17,22 @@ Base URL: `/api/auth`
     "password": "string"
   }
   ```
-- **Response**: JWT token and user information
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "token": "string",
+    "user": {
+      "id": "number",
+      "username": "string",
+      "email": "string"
+    }
+  }
+  ```
 
 #### Register
-- **POST** `/api/auth/register`
-- **Description**: Register a new user
+- **URL**: `/api/auth/register`
+- **Method**: `POST`
 - **Request Body**:
   ```json
   {
@@ -31,36 +41,93 @@ Base URL: `/api/auth`
     "password": "string"
   }
   ```
-- **Response**: User ID and success message
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "userId": "number",
+    "message": "string"
+  }
+  ```
 
 ### User Endpoints
 Base URL: `/api/user`
 
 #### Get User Profile
-- **GET** `/api/user/profile`
-- **Description**: Get authenticated user's profile information
+- **URL**: `/api/user/profile`
+- **Method**: `GET`
 - **Authentication**: Required
-- **Response**: User profile data including domains
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "number",
+      "username": "string",
+      "email": "string",
+      "domains": [
+        {
+          "id": "number",
+          "name": "string",
+          "createdAt": "string"
+        }
+      ]
+    }
+  }
+  ```
 
 ### Domain Endpoints
 Base URL: `/api/domains`
 
 #### Get Domain Details
-- **GET** `/api/domains/{id}/details`
-- **Description**: Get detailed information about a specific domain
+- **URL**: `/api/domains/{id}/details`
+- **Method**: `GET`
 - **Authentication**: Required
-- **Response**: Domain connection details
+- **Response**:
+  ```json
+  {
+    "success": "boolean",
+    "connection_details": {
+      "domain": "string",
+      "db": {
+        "host": "string",
+        "name": "string",
+        "user": "string",
+        "password": "string"
+      },
+      "ftp": {
+        "host": "string",
+        "user": "string",
+        "password": "string"
+      }
+    }
+  }
+  ```
 
 #### Get Domain Files
-- **GET** `/api/domains/{id}/files`
-- **Description**: List files for a specific domain
+- **URL**: `/api/domains/{id}/files`
+- **Method**: `GET`
 - **Authentication**: Required
-- **Query Parameters**: `path` (optional)
-- **Response**: List of files and directories
+- **Query Parameters**:
+  - `path` (optional, default: "/")
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "items": [
+      {
+        "name": "string",
+        "type": "string",
+        "size": "number",
+        "modified": "string"
+      }
+    ]
+  }
+  ```
 
 #### Buy Domain
-- **POST** `/api/domains/buy`
-- **Description**: Purchase a new domain
+- **URL**: `/api/domains/buy`
+- **Method**: `POST`
 - **Authentication**: Required
 - **Request Body**:
   ```json
@@ -68,25 +135,91 @@ Base URL: `/api/domains`
     "domain_name": "string"
   }
   ```
-- **Response**: Domain connection details
+- **Response**:
+  ```json
+  {
+    "success": "boolean",
+    "message": "string",
+    "connection_details": "object"
+  }
+  ```
 
 #### Reset FTP Password
-- **POST** `/api/domains/{id}/ftp/reset-password`
-- **Description**: Reset FTP password for a domain
+- **URL**: `/api/domains/{id}/ftp/reset-password`
+- **Method**: `POST`
 - **Authentication**: Required
-- **Response**: New FTP password
+- **Response**:
+  ```json
+  {
+    "success": "boolean",
+    "message": "string",
+    "new_password": "string"
+  }
+  ```
+
+#### Delete Domain
+- **URL**: `/api/domains/{id}`
+- **Method**: `DELETE`
+- **Authentication**: Required
+- **Response**:
+  ```json
+  {
+    "success": "boolean",
+    "message": "string"
+  }
+  ```
+- **Error Responses**:
+  - `404 Not Found`:
+    ```json
+    {
+      "success": false,
+      "message": "Domain not found"
+    }
+    ```
+  - `403 Forbidden`:
+    ```json
+    {
+      "success": false,
+      "message": "Access denied"
+    }
+    ```
 
 ### Public Endpoints
 Base URL: `/api`
 
-#### About
-- **GET** `/api/about`
-- **Description**: Get company information
-- **Authentication**: Not required
-- **Response**: Company details
+#### Get About Information
+- **URL**: `/api/about`
+- **Method**: `GET`
+- **Response**:
+  ```json
+  {
+    "company": {
+      "name": "string",
+      "mission": "string",
+      "history": "string",
+      "values": ["string"],
+      "contact": {
+        "email": "string",
+        "phone": "string",
+        "address": "string"
+      }
+    }
+  }
+  ```
 
-#### Price List
-- **GET** `/api/pricelist`
-- **Description**: Get hosting service prices
-- **Authentication**: Not required
-- **Response**: List of available hosting packages
+#### Get Price List
+- **URL**: `/api/pricelist`
+- **Method**: `GET`
+- **Response**:
+  ```json
+  {
+    "services": [
+      {
+        "service": "string",
+        "price": "string",
+        "features": ["string"]
+      }
+    ]
+  }
+  ```
+>>>>>>> 54eb216 (Add domain deletion endpoint and update API documentation)
