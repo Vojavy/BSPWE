@@ -222,4 +222,3 @@ Base URL: `/api`
     ]
   }
   ```
->>>>>>> 54eb216 (Add domain deletion endpoint and update API documentation)
