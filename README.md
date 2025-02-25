@@ -1,8 +1,5 @@
 # BSPWE - Backend Service for Personal Web Environment
 
-## Overview
-BSPWE is a backend service that provides API endpoints for managing web hosting and domain services. The service is built using Symfony framework and provides secure authentication, domain management, and user profile features.
-
 ## API Documentation
 
 ### Authentication Endpoints
