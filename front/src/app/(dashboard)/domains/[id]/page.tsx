@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileIcon, FolderIcon } from 'lucide-react';
+import { FileIcon, FolderIcon, Database, Mail, Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { use } from 'react';
 
@@ -15,6 +15,27 @@ interface FileItem {
 	type: 'file' | 'directory';
 	size?: string;
 	modified?: string;
+}
+
+interface DomainDetails {
+	domain: string;
+	db: {
+		username: string;
+		password: string;
+		name: string;
+		host: string;
+	};
+	ftp: {
+		username: string;
+		password: string;
+		home: string;
+	};
+	apache: {
+		config_file: string;
+	};
+	smtp: {
+		enabled: boolean;
+	};
 }
 
 interface PageProps {
@@ -27,6 +48,31 @@ export default function DomainManagePage({ params }: PageProps) {
 	const [currentPath, setCurrentPath] = useState('/');
 	const [files, setFiles] = useState<FileItem[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
+	const [domainDetails, setDomainDetails] = useState<DomainDetails | null>(null);
+
+	const fetchDomainDetails = useCallback(
+		async (token: string) => {
+			try {
+				const response = await fetch(`/api/domains/${id}/details`, {
+					headers: {
+						Authorization: `Bearer ${token}`
+					}
+				});
+
+				const data = await response.json();
+				if (data.success) {
+					setDomainDetails(data.connection_details);
+				}
+			} catch (error) {
+				toast({
+					title: 'Error',
+					description: 'Failed to fetch domain details',
+					variant: 'destructive'
+				});
+			}
+		},
+		[id]
+	);
 
 	const fetchFiles = useCallback(
 		async (token: string, path: string) => {
@@ -68,8 +114,9 @@ export default function DomainManagePage({ params }: PageProps) {
 			return;
 		}
 
+		fetchDomainDetails(token);
 		fetchFiles(token, currentPath);
-	}, [router, currentPath, id, fetchFiles]);
+	}, [router, currentPath, fetchFiles, fetchDomainDetails]);
 
 	const handleNavigate = (item: FileItem) => {
 		if (item.type === 'directory') {
@@ -157,13 +204,82 @@ export default function DomainManagePage({ params }: PageProps) {
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-2">
-				<h1 className="text-3xl font-bold tracking-tight">File Manager</h1>
-				<p className="text-sm text-muted-foreground">Manage files for your domain</p>
+				<h1 className="text-3xl font-bold tracking-tight">Domain Management</h1>
+				<p className="text-sm text-muted-foreground">Manage files and services for {domainDetails?.domain}</p>
 			</div>
+
+			{domainDetails && (
+				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+					<Card>
+						<CardHeader>
+							<div className="flex items-center gap-2">
+								<Database className="h-5 w-5 text-primary" />
+								<CardTitle className="text-lg">Database</CardTitle>
+							</div>
+						</CardHeader>
+						<CardContent className="space-y-2">
+							<p className="text-sm">
+								<strong>Host:</strong> {domainDetails.db.host}
+							</p>
+							<p className="text-sm">
+								<strong>Name:</strong> {domainDetails.db.name}
+							</p>
+							<p className="text-sm">
+								<strong>Username:</strong> {domainDetails.db.username}
+							</p>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<div className="flex items-center gap-2">
+								<FolderIcon className="h-5 w-5 text-primary" />
+								<CardTitle className="text-lg">FTP</CardTitle>
+							</div>
+						</CardHeader>
+						<CardContent className="space-y-2">
+							<p className="text-sm">
+								<strong>Username:</strong> {domainDetails.ftp.username}
+							</p>
+							<p className="text-sm">
+								<strong>Home:</strong> {domainDetails.ftp.home}
+							</p>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<div className="flex items-center gap-2">
+								<Server className="h-5 w-5 text-primary" />
+								<CardTitle className="text-lg">Apache</CardTitle>
+							</div>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm break-all">
+								<strong>Config:</strong> {domainDetails.apache.config_file}
+							</p>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<div className="flex items-center gap-2">
+								<Mail className="h-5 w-5 text-primary" />
+								<CardTitle className="text-lg">SMTP</CardTitle>
+							</div>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm">
+								<strong>Status:</strong> {domainDetails.smtp.enabled ? 'Enabled' : 'Disabled'}
+							</p>
+						</CardContent>
+					</Card>
+				</div>
+			)}
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Files</CardTitle>
+					<CardTitle>File Manager</CardTitle>
 					<CardDescription className="flex items-center space-x-2">
 						<span>Current path: {currentPath}</span>
 						{currentPath !== '/' && (
