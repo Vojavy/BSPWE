@@ -59,7 +59,6 @@ class DomainController extends AbstractController
             ], 404);
         }
 
-        // Check if user has access to this domain
         if ($domain->getOwner() !== $this->getUser()) {
             return new JsonResponse([
                 'status' => 'error',
@@ -67,20 +66,43 @@ class DomainController extends AbstractController
             ], 403);
         }
 
-        $path = $request->query->get('path', '/');
-        
-        // Here you would implement the actual file listing logic
-        // This is a placeholder response
+        // Получаем FTP-пользователя из connection_details
+        $connectionDetails = $domain->getConnectionDetails();
+        $ftpUser = $connectionDetails['ftp']['user'] ?? null;
+        if (!$ftpUser) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'FTP user not defined'
+            ], 400);
+        }
+        // Определяем домашний каталог. Если он задан в connection_details, используем его; иначе — стандартный путь
+        $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/users/' . $ftpUser);
+
+        if (!is_dir($ftpHome)) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'FTP home directory not found'
+            ], 404);
+        }
+
+        $files = scandir($ftpHome);
+        $items = [];
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            $filePath = $ftpHome . '/' . $file;
+            $items[] = [
+                'name' => $file,
+                'type' => is_dir($filePath) ? 'directory' : 'file',
+                'size' => is_file($filePath) ? filesize($filePath) : 0,
+                'modified' => date("Y-m-d H:i:s", filemtime($filePath))
+            ];
+        }
+
         return new JsonResponse([
             'status' => 'success',
-            'items' => [
-                [
-                    'name' => 'index.php',
-                    'type' => 'file',
-                    'size' => 1024,
-                    'modified' => '2024-02-24 12:00:00'
-                ]
-            ]
+            'items' => $items
         ]);
     }
 
@@ -89,18 +111,17 @@ class DomainController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
         
-        // Here you would implement domain purchase logic
-        // This is a simplified version
+        // Создаем новый объект Domain
         $domain = new Domain();
         $domain->setDomainName($data['domain_name']);
         $domain->setOwner($this->getUser());
         
-        // Generate FTP password
+        // Генерируем FTP-пароль
         $ftpPassword = ByteString::fromRandom(16)->toString();
         $domain->setFtpPassword($ftpPassword);
         
-        // Set some default connection details
-        $domain->setConnectionDetails([
+        // Заполняем connection_details (DB, FTP и т.д.)
+        $connectionDetails = [
             'domain' => $data['domain_name'],
             'db' => [
                 'host' => 'localhost',
@@ -111,13 +132,35 @@ class DomainController extends AbstractController
             'ftp' => [
                 'host' => 'ftp.' . $data['domain_name'],
                 'user' => 'ftp_' . substr(md5($data['domain_name']), 0, 8),
-                'password' => $ftpPassword
+                'password' => $ftpPassword,
+                // Опционально можно задать домашний каталог
+                'home' => '/var/www/users/' . ('ftp_' . substr(md5($data['domain_name']), 0, 8))
             ]
-        ]);
-
+        ];
+        $domain->setConnectionDetails($connectionDetails);
+    
         $this->entityManager->persist($domain);
         $this->entityManager->flush();
-
+    
+        // Создаем FTP-пользователя через shell команды
+    
+        $ftpUser = $connectionDetails['ftp']['user'];
+        $ftpHome = $connectionDetails['ftp']['home'];
+    
+        // 1. Создаем домашний каталог для FTP-пользователя
+        shell_exec('mkdir -p ' . escapeshellarg($ftpHome));
+    
+        // 2. Регистрируем нового FTP-пользователя через pure-pw
+        $createUserCmd = sprintf(
+            'pure-pw useradd %s -u www-data -d %s',
+            escapeshellarg($ftpUser),
+            escapeshellarg($ftpHome)
+        );
+        shell_exec($createUserCmd);
+    
+        // 3. Обновляем базу данных Pure-FTPd (puredb)
+        shell_exec('pure-pw mkdb');
+    
         return new JsonResponse([
             'success' => true,
             'message' => 'Domain purchased successfully',
@@ -146,13 +189,23 @@ class DomainController extends AbstractController
 
         $newPassword = ByteString::fromRandom(16)->toString();
         
-        // Update the FTP password in the connection details
+        // Обновляем FTP-пароль в connection_details
         $connectionDetails = $domain->getConnectionDetails();
         $connectionDetails['ftp']['password'] = $newPassword;
         $domain->setConnectionDetails($connectionDetails);
         
         $this->entityManager->flush();
 
+        // Обновляем пароль FTP-пользователя через pure-pw
+        $ftpUser = $connectionDetails['ftp']['user'];
+        $updateCmd = sprintf(
+            'pure-pw usermod %s -p %s',
+            escapeshellarg($ftpUser),
+            escapeshellarg($newPassword)
+        );
+        shell_exec($updateCmd);
+        shell_exec('pure-pw mkdb');
+    
         return new JsonResponse([
             'success' => true,
             'message' => 'FTP password reset successfully',
@@ -172,7 +225,6 @@ class DomainController extends AbstractController
             ], 404);
         }
 
-        // Check if user has access to this domain
         if ($domain->getOwner() !== $this->getUser()) {
             return new JsonResponse([
                 'success' => false,
@@ -180,7 +232,25 @@ class DomainController extends AbstractController
             ], 403);
         }
 
-        // Remove the domain
+        // Перед удалением домена удаляем FTP-пользователя и его домашний каталог
+        $connectionDetails = $domain->getConnectionDetails();
+        $ftpUser = $connectionDetails['ftp']['user'] ?? null;
+        $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/users/' . $ftpUser);
+        if ($ftpUser) {
+            // Удаляем FTP-пользователя
+            $deleteCmd = sprintf(
+                'pure-pw userdel %s',
+                escapeshellarg($ftpUser)
+            );
+            shell_exec($deleteCmd);
+            shell_exec('pure-pw mkdb');
+        }
+        // Удаляем домашний каталог (осторожно: rm -rf)
+        if (is_dir($ftpHome)) {
+            shell_exec('rm -rf ' . escapeshellarg($ftpHome));
+        }
+    
+        // Удаляем домен из базы данных
         $this->entityManager->remove($domain);
         $this->entityManager->flush();
 
@@ -189,4 +259,4 @@ class DomainController extends AbstractController
             'message' => 'Domain deleted successfully'
         ]);
     }
-} 
+}
