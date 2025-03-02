@@ -31,5 +31,39 @@ if [ -n "$FTP_USER" ] && [ -n "$FTP_PASS" ]; then
     fi
 fi
 
+# Ждем, пока база данных будет готова
+echo "Waiting for database to be ready..."
+max_attempts=30
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if pg_isready -h database -p 5432 -U admin -d hosting_db > /dev/null 2>&1; then
+        echo "Database is ready!"
+        break
+    fi
+    attempt=$((attempt+1))
+    echo "Waiting for database... attempt $attempt of $max_attempts"
+    sleep 2
+done
+
+if [ $attempt -eq $max_attempts ]; then
+    echo "Database connection timed out. Continuing anyway..."
+else
+    # Проверяем существование таблиц и запускаем миграции Doctrine
+    echo "Running database migrations..."
+    cd /var/www/backend
+    
+    # Проверяем, существуют ли таблицы в базе данных
+    echo "Checking if database schema exists..."
+    TABLES_COUNT=$(PGPASSWORD=password psql -h database -U admin -d hosting_db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" | tr -d ' ')
+    
+    if [ "$TABLES_COUNT" -eq "0" ]; then
+        echo "Database schema is empty. Creating schema..."
+        php bin/console doctrine:schema:create --no-interaction || echo "Schema creation failed, but continuing..."
+    fi
+    
+    # Запускаем миграции
+    php bin/console doctrine:migrations:migrate -n || echo "Migration failed, but continuing..."
+fi
+
 # Запускаем переданный процесс (например, supervisord)
 exec "$@"

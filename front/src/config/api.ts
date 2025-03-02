@@ -1,4 +1,10 @@
-const API_URLS = ['http://localhost:4444', 'http://localhost:80', 'http://localhost:3000'] as const;
+const API_URLS = [
+	'https://hosting.mojefirma.cz',
+	'http://hosting.mojefirma.cz',
+	'http://localhost:4444',
+	'http://localhost:80',
+	'http://localhost:3000'
+] as const;
 
 export async function getWorkingApiUrl(): Promise<string> {
 	for (const baseUrl of API_URLS) {
