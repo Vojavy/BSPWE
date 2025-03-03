@@ -10,7 +10,7 @@ import { use } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface FTPSettings {
-	username: string;
+	user: string;
 	password: string;
 	home: string;
 }
@@ -125,11 +125,11 @@ export default function FTPSettingsPage({ params }: PageProps) {
 					<CardContent className="space-y-4">
 						<div className="space-y-2">
 							<Label htmlFor="username">Username</Label>
-							<Input id="username" value={settings.username} readOnly />
+							<Input id="username" value={settings.user} readOnly />
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="password">Password</Label>
-							<Input id="password" type="password" value={settings.password} readOnly />
+							<Input id="password" value={settings.password} readOnly />
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="home">Home Directory</Label>

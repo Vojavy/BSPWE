@@ -51,6 +51,9 @@ RUN apt-get update && apt-get install -y \
     openssl \
     && apt-get clean
 
+# Добавляем глобальный ServerName для Apache, чтобы подавить предупреждения
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
 # Создаем базовую директорию для веб-кода и даем права пользователю www-data
 RUN mkdir -p /var/www && chown -R www-data:www-data /var/www
 

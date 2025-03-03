@@ -30,12 +30,12 @@ interface DomainDetails {
 		password: string;
 		home: string;
 	};
-	apache: {
-		config_file: string;
-	};
-	smtp: {
-		enabled: boolean;
-	};
+	// apache: {
+	// 	config_file: string;
+	// };
+	// smtp: {
+	// 	enabled: boolean;
+	// };
 }
 
 interface PageProps {
@@ -247,7 +247,7 @@ export default function DomainManagePage({ params }: PageProps) {
 						</CardContent>
 					</Card>
 
-					<Card>
+					{/* <Card>
 						<CardHeader>
 							<div className="flex items-center gap-2">
 								<Server className="h-5 w-5 text-primary" />
@@ -273,7 +273,7 @@ export default function DomainManagePage({ params }: PageProps) {
 								<strong>Status:</strong> {domainDetails.smtp.enabled ? 'Enabled' : 'Disabled'}
 							</p>
 						</CardContent>
-					</Card>
+					</Card> */}
 				</div>
 			)}
 

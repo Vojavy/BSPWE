@@ -68,13 +68,13 @@ export async function POST(request: Request) {
 					username: `${domainPrefix}_ftp`,
 					password: randomSuffix,
 					home: `/var/www/${data.domain_name}`
-				},
-				apache: {
-					config_file: `/etc/apache2/sites-available/${data.domain_name}.conf`
-				},
-				smtp: {
-					enabled: false
 				}
+				// apache: {
+				// 	config_file: `/etc/apache2/sites-available/${data.domain_name}.conf`
+				// },
+				// smtp: {
+				// 	enabled: false
+				// }
 			}
 		});
 	} catch (error) {

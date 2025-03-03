@@ -30,12 +30,12 @@ interface ConnectionDetails {
 		password: string;
 		home: string;
 	};
-	apache: {
-		config_file: string;
-	};
-	smtp: {
-		enabled: boolean;
-	};
+	// apache: {
+	// 	config_file: string;
+	// };
+	// smtp: {
+	// 	enabled: boolean;
+	// };
 }
 
 export default function BuyDomainPage() {
@@ -140,7 +140,7 @@ export default function BuyDomainPage() {
 										value={domain}
 										onChange={(e) => setDomain(e.target.value)}
 										required
-										pattern="^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$"
+										pattern="^[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]$"
 										title="Please enter a valid domain name"
 										className="font-medium"
 									/>
@@ -243,7 +243,7 @@ export default function BuyDomainPage() {
 								</CardContent>
 							</Card>
 
-							<Card>
+							{/* <Card>
 								<CardHeader>
 									<div className="flex items-center gap-2">
 										<Server className="h-5 w-5 text-primary" />
@@ -255,9 +255,9 @@ export default function BuyDomainPage() {
 										<strong>Config File:</strong> {connectionDetails.apache.config_file}
 									</p>
 								</CardContent>
-							</Card>
+							</Card> */}
 
-							<Card>
+							{/* <Card>
 								<CardHeader>
 									<div className="flex items-center gap-2">
 										<Mail className="h-5 w-5 text-primary" />
@@ -269,7 +269,7 @@ export default function BuyDomainPage() {
 										<strong>Enabled:</strong> {connectionDetails.smtp.enabled ? 'Yes' : 'No'}
 									</p>
 								</CardContent>
-							</Card>
+							</Card> */}
 
 							<Button
 								className="w-full"

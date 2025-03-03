@@ -35,7 +35,7 @@ export default function DashboardPage() {
 				});
 
 				const data = await response.json();
-
+				console.log(data)
 				if (data.status === 'success') {
 					setProfile(data.data);
 				} else {
@@ -97,13 +97,15 @@ export default function DashboardPage() {
 	}
 
 	const getStatusColor = (status: string) => {
-		switch (status.toLowerCase()) {
-			case 'active':
-				return 'text-green-600 dark:text-green-500';
-			case 'pending':
-				return 'text-yellow-600 dark:text-yellow-500';
-			default:
-				return 'text-muted-foreground';
+		if (status !== undefined){ 
+			switch (status.toLowerCase()) {
+				case 'active':
+					return 'text-green-600 dark:text-green-500';
+				case 'pending':
+					return 'text-yellow-600 dark:text-yellow-500';
+				default:
+					return 'text-muted-foreground';
+			}
 		}
 	};
 
