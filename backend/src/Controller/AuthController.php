@@ -46,7 +46,7 @@ class AuthController extends AbstractController
                 'username' => $user->getUsername(),
                 'email' => $user->getEmail()
             ]
-        ]);
+        ], 200, [], JSON_PRETTY_PRINT);        
     }
 
     #[Route('/register', name: 'api_register', methods: ['POST'])]

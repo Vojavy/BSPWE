@@ -36,7 +36,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 			});
 
 			const data = await response.json();
-
+			console.log('response:', data);
 			if (data.status === 'success') {
 				if (mode === 'login') {
 					// Store the token
