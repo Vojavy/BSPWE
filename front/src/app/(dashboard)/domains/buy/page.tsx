@@ -140,7 +140,7 @@ export default function BuyDomainPage() {
 										value={domain}
 										onChange={(e) => setDomain(e.target.value)}
 										required
-										pattern="^[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]$"
+										// pattern="^[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]$"
 										title="Please enter a valid domain name"
 										className="font-medium"
 									/>

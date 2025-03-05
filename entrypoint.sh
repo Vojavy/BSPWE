@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Отключаем анонимный вход (на всякий случай)
-echo "yes" > /etc/pure-ftpd/conf/NoAnonymous
-
 # Создаем группу ftp, если её нет
 if ! getent group ftp > /dev/null; then
   echo "Creating group ftp"

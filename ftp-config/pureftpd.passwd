@@ -1,0 +1,2 @@
+admin:$argon2id$v=19$m=8192,t=511,p=1$B2wCQYVcIvsUOkaudiTt2Q$a0GtlE4gm0mu3WJaebTndsKs+JoKLTTJ7+LjmtWYr3Q:1000:1000::/var/www/ftp/admin/./::::::::::::
+ftp_a3aca296:$argon2id$v=19$m=8192,t=511,p=1$uAZTZCjAvwp6X0DECFW1Mw$IIH4rvcfYEilvfzjODE1KXz4KozCzP7+hMUhvk4frQg:1000:1000::/var/www/users/ftp_a3aca296/./::::::::::::
