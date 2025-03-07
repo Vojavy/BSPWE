@@ -20,13 +20,14 @@ interface PriceList {
 interface ConnectionDetails {
 	domain: string;
 	db: {
-		username: string;
-		password: string;
-		name: string;
 		host: string;
+		name: string;
+		user: string;
+		password: string;
 	};
 	ftp: {
-		username: string;
+		host: string;
+		user: string;
 		password: string;
 		home: string;
 	};
@@ -215,7 +216,7 @@ export default function BuyDomainPage() {
 										<strong>Database:</strong> {connectionDetails.db.name}
 									</p>
 									<p>
-										<strong>Username:</strong> {connectionDetails.db.username}
+										<strong>Username:</strong> {connectionDetails.db.user}
 									</p>
 									<p>
 										<strong>Password:</strong> {connectionDetails.db.password}
@@ -232,7 +233,10 @@ export default function BuyDomainPage() {
 								</CardHeader>
 								<CardContent className="space-y-2">
 									<p>
-										<strong>Username:</strong> {connectionDetails.ftp.username}
+										<strong>Host:</strong> {connectionDetails.ftp.host}
+									</p>
+									<p>
+										<strong>Username:</strong> {connectionDetails.ftp.user}
 									</p>
 									<p>
 										<strong>Password:</strong> {connectionDetails.ftp.password}
@@ -287,4 +291,3 @@ export default function BuyDomainPage() {
 		</>
 	);
 }
-

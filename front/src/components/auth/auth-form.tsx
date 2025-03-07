@@ -36,19 +36,30 @@ export function AuthForm({ mode }: AuthFormProps) {
 			});
 
 			const data = await response.json();
-			if (data.status === 'success') {
+
+			if (response.ok) {
 				if (mode === 'login') {
-					// Store the token
-					localStorage.setItem('token', data.token);
-					router.push('/dashboard');
+					// Check if token exists in the response
+					if (data.token) {
+						// Store the token in localStorage
+						localStorage.setItem('token', data.token);
+						toast.success('Login successful!');
+						// Use replace instead of push to prevent going back to login page
+						router.replace('/dashboard');
+					} else {
+						toast.error('Authentication failed: No token received');
+					}
 				} else {
 					toast.success('Registration successful! Please log in.');
 					router.push('/login');
 				}
 			} else {
-				toast.error(data.message);
+				// Handle error responses
+				const errorMessage = data.message || 'An error occurred. Please try again.';
+				toast.error(errorMessage);
 			}
 		} catch (error) {
+			console.error('Auth error:', error);
 			toast.error('An error occurred. Please try again.');
 		} finally {
 			setIsLoading(false);
@@ -106,4 +117,3 @@ export function AuthForm({ mode }: AuthFormProps) {
 		</Card>
 	);
 }
-

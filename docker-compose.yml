@@ -16,7 +16,7 @@ services:
       - SETPCAP
     restart: always
     volumes:
-      - ./ftp-config:/etc/pure-ftpd
+      - ./ftp-config/proftpd.conf:/etc/proftpd/proftpd.conf
     ports:
       - '80:80'
       - '21:21'
@@ -24,6 +24,7 @@ services:
       - '3000:3000'
       - '5000:5000'
       - '30000-30009:30000-30009'
+      - '20:20'
     environment:
       FTP_USER: admin
       FTP_PASS: admin

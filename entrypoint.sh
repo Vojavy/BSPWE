@@ -15,17 +15,25 @@ fi
 
 # Если заданы переменные для FTP, создаём FTP-пользователя, если он отсутствует
 if [ -n "$FTP_USER" ] && [ -n "$FTP_PASS" ]; then
-    if pure-pw show "$FTP_USER" > /dev/null 2>&1; then
-        echo "FTP user '$FTP_USER' already exists, skipping creation."
-    else
-        echo "Creating FTP user: $FTP_USER"
-        HOME_DIR="/var/www/ftp/$FTP_USER"
-        mkdir -p "$HOME_DIR"
-        chown ftp:ftp "$HOME_DIR"
-        # Добавляем FTP-пользователя через pure-pw
-        echo -e "$FTP_PASS\n$FTP_PASS" | pure-pw useradd "$FTP_USER" -u ftp -d "$HOME_DIR"
-        pure-pw mkdb
-    fi
+    echo "Creating FTP user: $FTP_USER"
+    HOME_DIR="/var/ftp/$FTP_USER"
+    mkdir -p "$HOME_DIR"
+    
+    # Создаем пользователя с указанным паролем
+    useradd -m -d "$HOME_DIR" -s /bin/false "$FTP_USER" || true
+    echo "$FTP_USER:$FTP_PASS" | chpasswd
+    
+    # Настраиваем права доступа
+    chown -R "$FTP_USER:$FTP_USER" "$HOME_DIR"
+    chmod 755 "$HOME_DIR"
+fi
+
+# Make sure Apache port is available
+echo "Checking if port 80 is in use..."
+if lsof -i:80 > /dev/null 2>&1; then
+  echo "Port 80 is already in use. Killing process..."
+  fuser -k 80/tcp || true
+  sleep 2
 fi
 
 # Ждем, пока база данных будет готова

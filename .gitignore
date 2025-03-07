@@ -5,8 +5,9 @@
 *.iml
 .DS_Store
 Thumbs.db
-node_modules/
-bower_components/
+*/node_modules
+*/.next
+*bower_components/
 dist/
 build/
 __pycache__/
@@ -41,3 +42,5 @@ venv/
 .LSOverride
 desktop.ini
 config.local.*
+*.lock
+*.lockb

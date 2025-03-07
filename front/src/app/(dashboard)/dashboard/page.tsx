@@ -10,13 +10,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface Domain {
 	id: number;
 	name: string;
-	status: string;
+	createdAt: string;
 }
 
 interface UserProfile {
+	id: number;
 	username: string;
 	email: string;
-	role: string;
 	domains: Domain[];
 }
 
@@ -35,7 +35,7 @@ export default function DashboardPage() {
 				});
 
 				const data = await response.json();
-				console.log(data)
+				console.log(data);
 				if (data.status === 'success') {
 					setProfile(data.data);
 				} else {
@@ -96,19 +96,6 @@ export default function DashboardPage() {
 		);
 	}
 
-	const getStatusColor = (status: string) => {
-		if (status !== undefined){ 
-			switch (status.toLowerCase()) {
-				case 'active':
-					return 'text-green-600 dark:text-green-500';
-				case 'pending':
-					return 'text-yellow-600 dark:text-yellow-500';
-				default:
-					return 'text-muted-foreground';
-			}
-		}
-	};
-
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -128,7 +115,7 @@ export default function DashboardPage() {
 							<CardTitle className="line-clamp-1">{domain.name}</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<p className={`text-sm mb-4 ${getStatusColor(domain.status)}`}>Status: {domain.status}</p>
+							<p className="text-sm mb-4">Created: {new Date(domain.createdAt).toLocaleDateString()}</p>
 							<div className="flex flex-wrap gap-2">
 								<Button variant="outline" size="sm" onClick={() => router.push(`/domains/${domain.id}`)}>
 									Manage
@@ -153,4 +140,3 @@ export default function DashboardPage() {
 		</div>
 	);
 }
-

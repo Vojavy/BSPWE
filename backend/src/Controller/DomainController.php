@@ -23,6 +23,66 @@ class DomainController extends AbstractController
     ) {
     }
 
+    private function createFtpUser(string $username, string $password, string $homeDir): void
+    {
+        // Создаем домашнюю директорию
+        $process1 = new Process(['mkdir', '-p', $homeDir]);
+        $process1->run();
+        if (!$process1->isSuccessful()) {
+            throw new ProcessFailedException($process1);
+        }
+
+        // Создаем пользователя системы в группе ftp
+        $process2 = new Process(['useradd', '-g', 'ftp', '-d', $homeDir, '-s', '/bin/false', $username]);
+        $process2->run();
+        
+        // Устанавливаем пароль
+        $process3 = Process::fromShellCommandline(sprintf('echo "%s:%s" | chpasswd', $username, $password));
+        $process3->run();
+        if (!$process3->isSuccessful()) {
+            throw new ProcessFailedException($process3);
+        }
+
+        // Устанавливаем права на домашнюю директорию
+        $process4 = new Process(['chown', '-R', $username . ':ftp', $homeDir]);
+        $process4->run();
+        if (!$process4->isSuccessful()) {
+            throw new ProcessFailedException($process4);
+        }
+
+        $process5 = new Process(['chmod', '755', $homeDir]);
+        $process5->run();
+        if (!$process5->isSuccessful()) {
+            throw new ProcessFailedException($process5);
+        }
+    }
+
+    private function deleteFtpUser(string $username, string $homeDir): void
+    {
+        // Удаляем пользователя
+        $process1 = new Process(['userdel', $username]);
+        $process1->run();
+
+        // Удаляем домашнюю директорию
+        if (is_dir($homeDir)) {
+            $process2 = new Process(['rm', '-rf', $homeDir]);
+            $process2->run();
+            if (!$process2->isSuccessful()) {
+                throw new ProcessFailedException($process2);
+            }
+        }
+    }
+
+    private function updateFtpPassword(string $username, string $password): void
+    {
+        // Обновляем пароль пользователя
+        $process = Process::fromShellCommandline(sprintf('echo "%s:%s" | chpasswd', $username, $password));
+        $process->run();
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+    }
+
     #[Route('/{id}/details', name: 'api_domain_details', methods: ['GET'])]
     public function getDomainDetails(int $id): JsonResponse
     {
@@ -158,42 +218,8 @@ class DomainController extends AbstractController
             $ftpUser = $connectionDetails['ftp']['user'];
             $ftpHome = $connectionDetails['ftp']['home'];
     
-            $processes = [];
-    
-            // 1. Создаем домашний каталог для FTP-пользователя
-            $cmd1 = sprintf('mkdir -p %s', escapeshellarg($ftpHome));
-            $process1 = Process::fromShellCommandline($cmd1);
-            $process1->start();
-            $processes[] = $process1;
-            error_log("buyDomain: Executing: " . $cmd1);
-    
-            // 2. Создаем нового FTP-пользователя с установкой пароля через bash (пароль вводится дважды)
-            $cmd2 = 'bash -c \'echo -e "' . $ftpPassword . "\n" . $ftpPassword . '" | pure-pw useradd ' . escapeshellarg($ftpUser) . ' -u ftp -d ' . escapeshellarg($ftpHome) . ' -m\'';
-            $process2 = Process::fromShellCommandline($cmd2);
-            $process2->start();
-            $processes[] = $process2;
-            error_log("buyDomain: Executing: " . $cmd2);
-    
-            // 3. Обновляем базу данных Pure-FTPd (puredb)
-            $cmd3 = 'pure-pw mkdb';
-            $process3 = Process::fromShellCommandline($cmd3);
-            $process3->start();
-            $processes[] = $process3;
-            error_log("buyDomain: Executing: " . $cmd3);
-    
-            // Дожидаемся завершения всех процессов и логируем их вывод
-            foreach ($processes as $process) {
-                $process->wait();
-                if (!$process->isSuccessful()) {
-                    $error = $process->getErrorOutput();
-                    error_log("buyDomain: Process error: " . $error);
-                    throw new ProcessFailedException($process);
-                } else {
-                    error_log("buyDomain: Process output: " . $process->getOutput());
-                }
-            }
-    
-            error_log("buyDomain: All FTP commands executed successfully");
+            // Создаем FTP пользователя
+            $this->createFtpUser($ftpUser, $ftpPassword, $ftpHome);
     
             $conn->commit();
     
@@ -245,17 +271,9 @@ class DomainController extends AbstractController
         $this->entityManager->flush();
         error_log("resetFtpPassword: New FTP password generated");
 
-        // Обновляем пароль FTP-пользователя через pure-pw
+        // Обновляем пароль FTP-пользователя
         $ftpUser = $connectionDetails['ftp']['user'];
-        $updateCmd = sprintf(
-            'pure-pw usermod %s -p %s',
-            escapeshellarg($ftpUser),
-            escapeshellarg($newPassword)
-        );
-        $updateOutput = shell_exec($updateCmd . ' 2>&1');
-        error_log("resetFtpPassword: Executing: " . $updateCmd . " Output: " . $updateOutput);
-        $mkdbOutput = shell_exec('pure-pw mkdb 2>&1');
-        error_log("resetFtpPassword: pure-pw mkdb output: " . $mkdbOutput);
+        $this->updateFtpPassword($ftpUser, $newPassword);
     
         return new JsonResponse([
             'success' => true,
@@ -289,19 +307,9 @@ class DomainController extends AbstractController
         $connectionDetails = $domain->getConnectionDetails();
         $ftpUser = $connectionDetails['ftp']['user'] ?? null;
         $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/users/' . $ftpUser);
+        
         if ($ftpUser) {
-            $deleteCmd = sprintf(
-                'pure-pw userdel %s',
-                escapeshellarg($ftpUser)
-            );
-            $deleteOutput = shell_exec($deleteCmd . ' 2>&1');
-            error_log("deleteDomain: Executing: " . $deleteCmd . " Output: " . $deleteOutput);
-            $mkdbOutput = shell_exec('pure-pw mkdb 2>&1');
-            error_log("deleteDomain: pure-pw mkdb output: " . $mkdbOutput);
-        }
-        if (is_dir($ftpHome)) {
-            $rmOutput = shell_exec('rm -rf ' . escapeshellarg($ftpHome) . ' 2>&1');
-            error_log("deleteDomain: Removing FTP home ($ftpHome): " . $rmOutput);
+            $this->deleteFtpUser($ftpUser, $ftpHome);
         }
     
         $this->entityManager->remove($domain);
