@@ -20,13 +20,14 @@ interface FileItem {
 interface DomainDetails {
 	domain: string;
 	db: {
-		username: string;
-		password: string;
-		name: string;
 		host: string;
+		name: string;
+		user: string;
+		password: string;
 	};
 	ftp: {
-		username: string;
+		host: string;
+		user: string;
 		password: string;
 		home: string;
 	};
@@ -225,7 +226,7 @@ export default function DomainManagePage({ params }: PageProps) {
 								<strong>Name:</strong> {domainDetails.db.name}
 							</p>
 							<p className="text-sm">
-								<strong>Username:</strong> {domainDetails.db.username}
+								<strong>Username:</strong> {domainDetails.db.user}
 							</p>
 						</CardContent>
 					</Card>
@@ -239,7 +240,10 @@ export default function DomainManagePage({ params }: PageProps) {
 						</CardHeader>
 						<CardContent className="space-y-2">
 							<p className="text-sm">
-								<strong>Username:</strong> {domainDetails.ftp.username}
+								<strong>Host:</strong> {domainDetails.ftp.host}
+							</p>
+							<p className="text-sm">
+								<strong>Username:</strong> {domainDetails.ftp.user}
 							</p>
 							<p className="text-sm">
 								<strong>Home:</strong> {domainDetails.ftp.home}
