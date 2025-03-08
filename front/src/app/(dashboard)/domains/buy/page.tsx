@@ -137,7 +137,7 @@ export default function BuyDomainPage() {
 							<form onSubmit={handleSubmit} className="space-y-4">
 								<div className="space-y-2">
 									<Input
-										placeholder="example.com"
+										placeholder="example"
 										value={domain}
 										onChange={(e) => setDomain(e.target.value)}
 										required
@@ -146,7 +146,7 @@ export default function BuyDomainPage() {
 										className="font-medium"
 									/>
 									<p className="text-[0.8rem] text-muted-foreground">
-										The domain name should follow the format: example.com
+										The domain name should follow the format: example
 									</p>
 								</div>
 								<div className="space-y-2">

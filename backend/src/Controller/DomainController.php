@@ -142,7 +142,7 @@ class DomainController extends AbstractController
                 'message' => 'FTP user not defined'
             ], 400);
         }
-        $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/users/' . $ftpUser);
+        $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/domains/' . $domain->getDomainName());
 
         if (!is_dir($ftpHome)) {
             error_log("getDomainFiles: FTP home directory not found at $ftpHome");
@@ -205,10 +205,13 @@ class DomainController extends AbstractController
                     'host' => 'ftp.' . $data['domain_name'],
                     'user' => 'ftp_' . substr(md5($data['domain_name']), 0, 8),
                     'password' => $ftpPassword,
-                    'home' => '/var/www/users/' . ('ftp_' . substr(md5($data['domain_name']), 0, 8))
+                    // Изменённый путь для домашней директории FTP:
+                    'home' => '/var/www/domains/' . $data['domain_name']
                 ]
             ];
             $domain->setConnectionDetails($connectionDetails);
+
+
     
             // Сохраняем домен в базе
             $this->entityManager->persist($domain);
@@ -262,24 +265,35 @@ class DomainController extends AbstractController
         }
 
         $newPassword = ByteString::fromRandom(16)->toString();
-        
-        // Обновляем FTP-пароль в connection_details
-        $connectionDetails = $domain->getConnectionDetails();
-        $connectionDetails['ftp']['password'] = $newPassword;
-        $domain->setConnectionDetails($connectionDetails);
-        
-        $this->entityManager->flush();
-        error_log("resetFtpPassword: New FTP password generated");
 
-        // Обновляем пароль FTP-пользователя
-        $ftpUser = $connectionDetails['ftp']['user'];
-        $this->updateFtpPassword($ftpUser, $newPassword);
-    
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'FTP password reset successfully',
-            'new_password' => $newPassword
-        ]);
+        $conn = $this->entityManager->getConnection();
+        $conn->beginTransaction();
+        try {
+            $ftpUser = $domain->getConnectionDetails()['ftp']['user'];
+            // Сначала обновляем пароль FTP-пользователя в системе
+            $this->updateFtpPassword($ftpUser, $newPassword);
+
+            // Затем обновляем пароль в connection_details
+            $connectionDetails = $domain->getConnectionDetails();
+            $connectionDetails['ftp']['password'] = $newPassword;
+            $domain->setConnectionDetails($connectionDetails);
+            $this->entityManager->flush();
+            $conn->commit();
+
+            error_log("resetFtpPassword: New FTP password generated and updated");
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'FTP password reset successfully',
+                'new_password' => $newPassword
+            ]);
+        } catch (\Exception $e) {
+            $conn->rollBack();
+            error_log("resetFtpPassword: Exception occurred: " . $e->getMessage());
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Failed to reset FTP password: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     #[Route('/{id}', name: 'api_domain_delete', methods: ['DELETE'])]
@@ -306,12 +320,12 @@ class DomainController extends AbstractController
         // Перед удалением домена удаляем FTP-пользователя и его домашний каталог
         $connectionDetails = $domain->getConnectionDetails();
         $ftpUser = $connectionDetails['ftp']['user'] ?? null;
-        $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/users/' . $ftpUser);
+        $ftpHome = $connectionDetails['ftp']['home'] ?? ('/var/www/domains/' . $domain->getDomainName());
         
         if ($ftpUser) {
             $this->deleteFtpUser($ftpUser, $ftpHome);
         }
-    
+
         $this->entityManager->remove($domain);
         $this->entityManager->flush();
         error_log("deleteDomain: Domain id $id deleted successfully");

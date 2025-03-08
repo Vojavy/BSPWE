@@ -16,6 +16,8 @@ services:
       - SETPCAP
     restart: always
     volumes:
+      - ./data/ftp:/var/ftp
+      - ./data/users:/var/www/users
       - ./ftp-config/proftpd.conf:/etc/proftpd/proftpd.conf
     ports:
       - '80:80'

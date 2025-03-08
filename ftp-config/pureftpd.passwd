@@ -1,0 +1,1 @@
+admin:$argon2id$v=19$m=8192,t=255,p=1$6EL60Xau+1jpnHlJZwNjHA$5McQOFJp2PrBJ3K7sGptSJrtshLLhd0ZIQxZFSQdTVQ:1000:1000::/var/www/ftp/admin/./::::::::::::
