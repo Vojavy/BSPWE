@@ -196,7 +196,7 @@ class DomainController extends AbstractController
             $connectionDetails = [
                 'domain' => $data['domain_name'],
                 'db' => [
-                    'host' => 'localhost',
+                    'host' => 'database',
                     'name' => 'db_' . substr(md5($data['domain_name']), 0, 8),
                     'user' => 'user_' . substr(md5($data['domain_name']), 0, 8),
                     'password' => ByteString::fromRandom(16)->toString()
@@ -210,8 +210,6 @@ class DomainController extends AbstractController
                 ]
             ];
             $domain->setConnectionDetails($connectionDetails);
-
-
     
             // Сохраняем домен в базе
             $this->entityManager->persist($domain);
@@ -223,6 +221,29 @@ class DomainController extends AbstractController
     
             // Создаем FTP пользователя
             $this->createFtpUser($ftpUser, $ftpPassword, $ftpHome);
+    
+            // Создаем базу данных для домена
+            $dbName = $connectionDetails['db']['name'];
+            $dbUser = $connectionDetails['db']['user'];
+            $dbPass = $connectionDetails['db']['password'];
+            
+            try {
+                // Подключаемся к базе "postgres" для выполнения операций создания БД
+                $dsn = "pgsql:host=database;port=5432;dbname=postgres;";
+                $pdo = new \PDO($dsn, 'admin', 'password');
+                $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+    
+                // Создаем базу данных
+                $pdo->exec("CREATE DATABASE \"$dbName\"");
+    
+                // Создаем пользователя для базы данных и назначаем пароль
+                $pdo->exec("CREATE USER \"$dbUser\" WITH PASSWORD '$dbPass'");
+    
+                // Предоставляем все привилегии новому пользователю на созданную базу данных
+                $pdo->exec("GRANT ALL PRIVILEGES ON DATABASE \"$dbName\" TO \"$dbUser\"");
+            } catch (\Exception $e) {
+                throw new \Exception("Database creation failed: " . $e->getMessage());
+            }
     
             $conn->commit();
     
@@ -241,8 +262,6 @@ class DomainController extends AbstractController
         }
     }
     
-    
-
     #[Route('/{id}/ftp/reset-password', name: 'api_domain_reset_ftp', methods: ['POST'])]
     public function resetFtpPassword(int $id): JsonResponse
     {
@@ -324,6 +343,22 @@ class DomainController extends AbstractController
         
         if ($ftpUser) {
             $this->deleteFtpUser($ftpUser, $ftpHome);
+        }
+        
+        // Удаляем базу данных, связанную с доменом
+        $dbName = $connectionDetails['db']['name'] ?? null;
+        $dbUser = $connectionDetails['db']['user'] ?? null;
+        if ($dbName && $dbUser) {
+            try {
+                $dsn = "pgsql:host=database;port=5432;dbname=postgres;";
+                $pdo = new \PDO($dsn, 'admin', 'password');
+                $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                $pdo->exec("DROP DATABASE IF EXISTS \"$dbName\"");
+                $pdo->exec("DROP USER IF EXISTS \"$dbUser\"");
+            } catch (\Exception $e) {
+                error_log("deleteDomain: Database deletion failed: " . $e->getMessage());
+                // Можно решить, как поступать в случае ошибки удаления БД, например, вернуть ошибку или продолжить удаление домена
+            }
         }
 
         $this->entityManager->remove($domain);
