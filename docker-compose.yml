@@ -14,7 +14,7 @@ services:
       - SETGID
       - NET_BIND_SERVICE
       - SETPCAP
-    restart: always
+    restart: no # always
     volumes:
       - ./data/ftp:/var/ftp
       - ./data/users:/var/www/users
@@ -34,7 +34,7 @@ services:
   database:
     image: postgres:latest
     container_name: postgres_db
-    restart: always
+    restart: no # always
     environment:
       POSTGRES_DB: hosting_db
       POSTGRES_USER: admin
